@@ -14,8 +14,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(papers.router, prefix="/api")
-app.include_router(annotations.router, prefix="/api")
+app.include_router(papers.router)
+app.include_router(annotations.router)
 
 @app.get("/")
 def root():
