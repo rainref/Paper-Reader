@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .models import get_db
+from .routers import papers
 
 app = FastAPI(title="Paper-Reader Backend")
 
@@ -12,6 +13,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(papers.router, prefix="/api")
 
 @app.get("/")
 def root():
