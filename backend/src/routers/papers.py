@@ -155,3 +155,58 @@ def get_toc(paper_id: str):
 
     toc = extract_toc(file_path)
     return {"toc": toc}
+
+
+@router.post("/{paper_id}/ai/query")
+async def query_paper(
+    paper_id: str,
+    question: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Ask AI about a paper."""
+    paper = db.query(Paper).filter(Paper.id == paper_id).first()
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    file_path = file_manager.get_paper_path(paper_id)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="PDF file not found")
+
+    # Get paper text
+    metadata = extract_metadata(file_path)
+    context = metadata.get("text", "")[:15000]  # Limit context
+
+    # Query AI
+    from ..services.ai_service import ai_service
+    answer = await ai_service.query(question, context)
+
+    return {"answer": answer}
+
+
+@router.post("/{paper_id}/translate")
+async def translate_paper(
+    paper_id: str,
+    text: str = Form(None),
+    full: bool = Form(False),
+    db: Session = Depends(get_db)
+):
+    """Translate paper or selection."""
+    paper = db.query(Paper).filter(Paper.id == paper_id).first()
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    from ..services.ai_service import ai_service
+
+    if full:
+        # Translate full paper
+        file_path = file_manager.get_paper_path(paper_id)
+        if not file_path:
+            raise HTTPException(status_code=404, detail="PDF file not found")
+
+        metadata = extract_metadata(file_path)
+        text_to_translate = metadata.get("text", "")[:10000]
+    else:
+        text_to_translate = text
+
+    translation = await ai_service.translate(text_to_translate)
+    return {"translation": translation}
