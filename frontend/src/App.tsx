@@ -1,9 +1,15 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Library from './pages/Library'
+import PaperView from './pages/PaperView'
+
 function App() {
   return (
-    <div>
-      <h1>Paper Reader</h1>
-      <p>Loading...</p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Library />} />
+        <Route path="/paper/:id" element={<PaperView />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
