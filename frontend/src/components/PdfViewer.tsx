@@ -7,6 +7,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
 
 interface PdfViewerProps {
   url: string
+  initialPage?: number
   onPageChange?: (page: number) => void
 }
 
@@ -54,21 +55,28 @@ const LoaderIcon = () => (
   </svg>
 )
 
-export default function PdfViewer({ url, onPageChange }: PdfViewerProps) {
+export default function PdfViewer({ url, initialPage = 1, onPageChange }: PdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null)
-  const [pageNum, setPageNum] = useState(1)
+  const [pageNum, setPageNum] = useState(initialPage)
   const [numPages, setNumPages] = useState(0)
   const [scale, setScale] = useState(1.2)
   const [loading, setLoading] = useState(true)
+
+  // Handle initialPage changes (when user clicks TOC)
+  useEffect(() => {
+    if (initialPage && initialPage !== pageNum) {
+      setPageNum(initialPage)
+    }
+  }, [initialPage])
 
   useEffect(() => {
     setLoading(true)
     pdfjsLib.getDocument(url).promise.then(pdfDoc => {
       setPdf(pdfDoc)
       setNumPages(pdfDoc.numPages)
-      setPageNum(1)
+      setPageNum(initialPage)
       setLoading(false)
     }).catch(() => {
       setLoading(false)

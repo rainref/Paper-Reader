@@ -60,6 +60,7 @@ export default function PaperView() {
   const [toc, setToc] = useState<TocItem[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>(null)
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     if (!id) return
@@ -196,7 +197,10 @@ export default function PaperView() {
               {toc.map((item, i) => (
                 <li key={i}>
                   <a
-                    href={`#page-${item.page}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setCurrentPage(item.page)
+                    }}
                     style={{
                       display: 'block',
                       padding: '8px 12px',
@@ -256,7 +260,12 @@ export default function PaperView() {
 
         {/* PDF Viewer */}
         <div style={{ flex: 1, overflow: 'auto' }}>
-          <PdfViewer url={pdfUrl} />
+          <PdfViewer
+            key={currentPage}
+            url={pdfUrl}
+            initialPage={currentPage}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
         </div>
       </main>
 
