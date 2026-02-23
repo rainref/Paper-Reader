@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
 
-// Set worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+// Set worker for pdfjs-dist 4.x
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
 
 interface PdfViewerProps {
   url: string
@@ -74,22 +75,44 @@ export default function PdfViewer({ url, onPageChange }: PdfViewerProps) {
     })
   }, [url])
 
+  // Render PDF page
   useEffect(() => {
     if (!pdf || !canvasRef.current) return
 
-    pdf.getPage(pageNum).then(page => {
+    let renderTask: pdfjsLib.PDFRenderTask | null = null
+
+    const renderPage = async () => {
+      const page = await pdf.getPage(pageNum)
       const canvas = canvasRef.current!
       const context = canvas.getContext('2d')!
       const viewport = page.getViewport({ scale })
 
-      canvas.height = viewport.height
+      // Set canvas actual pixel dimensions
       canvas.width = viewport.width
+      canvas.height = viewport.height
 
-      page.render({
+      // Set CSS dimensions to match actual pixels (disable browser scaling)
+      canvas.style.width = viewport.width + 'px'
+      canvas.style.height = viewport.height + 'px'
+
+      // Clear canvas before rendering
+      context.clearRect(0, 0, canvas.width, canvas.height)
+
+      renderTask = page.render({
         canvasContext: context,
         viewport
       })
-    })
+
+      await renderTask.promise
+    }
+
+    renderPage()
+
+    return () => {
+      if (renderTask) {
+        renderTask.cancel()
+      }
+    }
   }, [pdf, pageNum, scale])
 
   const goToPage = (page: number) => {
@@ -98,6 +121,25 @@ export default function PdfViewer({ url, onPageChange }: PdfViewerProps) {
       onPageChange?.(page)
     }
   }
+
+  // Alt+滚轮 缩放
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (e.altKey) {
+        e.preventDefault()
+        if (e.deltaY < 0) {
+          // 向上滚动，放大
+          setScale(s => Math.min(s + 0.1, 3))
+        } else {
+          // 向下滚动，缩小
+          setScale(s => Math.max(s - 0.1, 0.5))
+        }
+      }
+    }
+
+    window.addEventListener('wheel', handleWheel, { passive: false })
+    return () => window.removeEventListener('wheel', handleWheel)
+  }, [])
 
   const zoomIn = () => setScale(s => Math.min(s + 0.2, 3))
   const zoomOut = () => setScale(s => Math.max(s - 0.2, 0.5))
@@ -248,6 +290,7 @@ export default function PdfViewer({ url, onPageChange }: PdfViewerProps) {
         overflow: 'auto',
         display: 'flex',
         justifyContent: 'center',
+        alignItems: 'flex-start',
         padding: 24,
         backgroundColor: 'var(--color-background)'
       }}>
@@ -255,7 +298,8 @@ export default function PdfViewer({ url, onPageChange }: PdfViewerProps) {
           ref={canvasRef}
           style={{
             boxShadow: 'var(--shadow-lg)',
-            backgroundColor: 'white'
+            backgroundColor: 'white',
+            display: 'block'
           }}
         />
       </div>
