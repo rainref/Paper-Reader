@@ -61,7 +61,7 @@ export default function PdfViewer({ url, initialPage = 1, onPageChange }: PdfVie
   const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null)
   const [pageNum, setPageNum] = useState(initialPage)
   const [numPages, setNumPages] = useState(0)
-  const [scale, setScale] = useState(1.2)
+  const [scale, setScale] = useState(2.0)
   const [loading, setLoading] = useState(true)
 
   // Handle initialPage changes (when user clicks TOC)
