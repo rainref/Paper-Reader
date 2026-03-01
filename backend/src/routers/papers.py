@@ -210,3 +210,94 @@ async def translate_paper(
 
     translation = await ai_service.translate(text_to_translate)
     return {"translation": translation}
+
+
+@router.get("/{paper_id}/markdown")
+async def get_markdown(paper_id: str, db: Session = Depends(get_db)):
+    """获取 PDF 转换后的 Markdown 内容"""
+    # 检查论文是否存在
+    paper = db.query(Paper).filter(Paper.id == paper_id).first()
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    # 获取 PDF 文件路径
+    file_path = file_manager.get_paper_path(paper_id)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="PDF file not found")
+
+    # 检查缓存
+    from ..services.mineru_service import mineru_service
+    cached = mineru_service.get_cached_markdown(paper_id, file_path)
+    if cached:
+        return {
+            "markdown": cached["markdown"],
+            "total_pages": cached.get("total_pages", 0),
+            "from_cache": True
+        }
+
+    # 转换 PDF 到 Markdown
+    try:
+        result = mineru_service.convert_pdf_to_markdown(file_path, paper_id)
+        # 直接返回结果，不再复制到缓存
+        return {
+            "markdown": result["markdown"],
+            "total_pages": result.get("total_pages", 0),
+            "from_cache": False
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to convert PDF: {str(e)}")
+
+
+@router.get("/{paper_id}/markdown/images/{image_name}")
+async def get_markdown_image(paper_id: str, image_name: str, db: Session = Depends(get_db)):
+    """获取 Markdown 中的图片"""
+    # 检查论文是否存在
+    paper = db.query(Paper).filter(Paper.id == paper_id).first()
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    # 获取 PDF 文件路径
+    file_path = file_manager.get_paper_path(paper_id)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="PDF file not found")
+
+    # 获取图片路径
+    from ..services.mineru_service import mineru_service
+    img_path = mineru_service.get_image_path(paper_id, file_path, image_name)
+    if not img_path:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    # 根据图片扩展名确定 content-type
+    ext = image_name.lower().split('.')[-1]
+    content_type = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp'
+    }.get(ext, 'application/octet-stream')
+
+    from fastapi.responses import FileResponse
+    return FileResponse(img_path, media_type=content_type)
+
+
+@router.post("/{paper_id}/convert")
+async def convert_to_markdown(paper_id: str, db: Session = Depends(get_db)):
+    """手动触发 PDF 到 Markdown 的转换"""
+    # 检查论文是否存在
+    paper = db.query(Paper).filter(Paper.id == paper_id).first()
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    # 获取 PDF 文件路径
+    file_path = file_manager.get_paper_path(paper_id)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="PDF file not found")
+
+    # 转换 PDF 到 Markdown
+    try:
+        from ..services.mineru_service import mineru_service
+        mineru_service.convert_pdf_to_markdown(file_path, paper_id)
+        return {"status": "success", "message": "PDF converted to Markdown successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to convert PDF: {str(e)}")

@@ -55,6 +55,12 @@ export const paperApi = {
   translate: (id: string, text?: string, full?: boolean) =>
     api.post<{ translation: string }>(`/papers/${id}/translate`, { text, full }).then(r => r.data),
 
+  getMarkdown: (id: string) =>
+    api.get<{ markdown: string; total_pages?: number; from_cache: boolean }>(`/papers/${id}/markdown`).then(r => r.data),
+
+  convertToMarkdown: (id: string) =>
+    api.post<{ status: string; message: string }>(`/papers/${id}/convert`).then(r => r.data),
+
   getAnnotations: (id: string) =>
     api.get<{ annotations: Annotation[] }>(`/annotations/${id}`).then(r => r.data),
 
