@@ -182,11 +182,17 @@ export default function MarkdownView({ paperId }: MarkdownViewProps) {
           backgroundColor: 'var(--color-surface)',
           padding: 32,
           borderRadius: 'var(--radius-md)',
-          boxShadow: 'var(--shadow-sm)'
-        }}>
+          boxShadow: 'var(--shadow-sm)',
+          overflow: 'hidden'
+        }} className="markdown-content">
           <ReactMarkdown
             remarkPlugins={[remarkGfm, remarkMath]}
             rehypePlugins={[rehypeKatex, rehypeRaw]}
+            components={{
+              img: ({node, ...props}) => (
+                <img {...props} style={{maxWidth: '100%', height: 'auto'}} />
+              )
+            }}
           >{markdown}</ReactMarkdown>
         </div>
       </div>
