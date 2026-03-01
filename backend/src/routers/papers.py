@@ -235,17 +235,8 @@ async def get_markdown(paper_id: str, db: Session = Depends(get_db)):
             "from_cache": True
         }
 
-    # 转换 PDF 到 Markdown
-    try:
-        result = mineru_service.convert_pdf_to_markdown(file_path, paper_id)
-        # 直接返回结果，不再复制到缓存
-        return {
-            "markdown": result["markdown"],
-            "total_pages": result.get("total_pages", 0),
-            "from_cache": False
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to convert PDF: {str(e)}")
+    # 没有缓存，返回404提示前端需要转换
+    raise HTTPException(status_code=404, detail="Markdown not found, conversion required")
 
 
 @router.get("/{paper_id}/markdown/images/{image_name}")

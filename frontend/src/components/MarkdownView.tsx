@@ -20,6 +20,7 @@ export default function MarkdownView({ paperId }: MarkdownViewProps) {
   const [translation, setTranslation] = useState(''  )
   const [translating, setTranslating] = useState(false)
   const [totalPages, setTotalPages] = useState<number>(0)
+  const [needConvert, setNeedConvert] = useState(false)
 
   useEffect(() => {
     loadMarkdown()
@@ -28,37 +29,32 @@ export default function MarkdownView({ paperId }: MarkdownViewProps) {
   const loadMarkdown = async () => {
     setLoading(true)
     setError('')
+    setNeedConvert(false)
     try {
       const result = await paperApi.getMarkdown(paperId)
       setMarkdown(result.markdown)
       setTotalPages(result.total_pages || 0)
-    } catch (e) {
-      // 如果没有缓存，尝试转换
-      if (e instanceof Error && e.message.includes('404')) {
-        setConverting(true)
-        try {
-          const result = await paperApi.getMarkdown(paperId)
-          setMarkdown(result.markdown)
-          setTotalPages(result.total_pages || 0)
-        } catch (e2) {
-          setError(`转换失败: ${e2 instanceof Error ? e2.message : '未知错误'}`)
-        }
+    } catch (e: any) {
+      // 如果没有缓存，提示用户是否需要转换
+      if (e?.response?.status === 404) {
+        setNeedConvert(true)
       } else {
-        setError(e instanceof Error ? e.message : '加载失败')
+        setError(e?.response?.data?.detail || e?.message || '加载失败')
       }
     } finally {
       setLoading(false)
-      setConverting(false)
     }
   }
 
   const handleConvert = async () => {
+    setNeedConvert(false)
     setConverting(true)
     setError('')
     try {
       await paperApi.convertToMarkdown(paperId)
       const result = await paperApi.getMarkdown(paperId)
       setMarkdown(result.markdown)
+      setTotalPages(result.total_pages || 0)
     } catch (e) {
       setError(`转换失败: ${e instanceof Error ? e.message : '未知错误'}`)
     } finally {
@@ -139,6 +135,31 @@ export default function MarkdownView({ paperId }: MarkdownViewProps) {
           )}
           <p style={{ fontSize: 12, marginTop: 8 }}>This may take a few minutes</p>
         </div>
+      </div>
+    )
+  }
+
+  if (needConvert) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        minHeight: 400,
+        backgroundColor: 'var(--color-background)',
+        padding: 24
+      }}>
+        <p style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>
+          尚未生成 Markdown，是否开始转换？
+        </p>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginBottom: 24 }}>
+          转换可能需要几分钟时间，请耐心等待
+        </p>
+        <button className="btn btn-primary" onClick={handleConvert}>
+          开始转换
+        </button>
       </div>
     )
   }
