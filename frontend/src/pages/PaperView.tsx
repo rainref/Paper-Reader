@@ -2,9 +2,11 @@ import { useParams, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { paperApi, Paper, TocItem } from '../api/paperApi'
 import PdfViewer from '../components/PdfViewer'
+import MarkdownView from '../components/MarkdownView'
 import AIChat from '../components/AIChat'
 import TranslationPanel from '../components/TranslationPanel'
 
+type ViewMode = 'pdf' | 'markdown'
 type Tab = 'ai' | 'translate' | null
 
 // Icons
@@ -30,6 +32,25 @@ const GlobeIcon = () => (
     <circle cx="12" cy="12" r="10"/>
     <line x1="2" y1="12" x2="22" y2="12"/>
     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+  </svg>
+)
+
+const MarkdownIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+    <line x1="10" y1="9" x2="8" y2="9"/>
+  </svg>
+)
+
+const FileTextIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
   </svg>
 )
 
@@ -60,6 +81,7 @@ export default function PaperView() {
   const [toc, setToc] = useState<TocItem[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>('pdf')
   const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
@@ -240,6 +262,29 @@ export default function PaperView() {
           backgroundColor: 'var(--color-surface)',
           borderBottom: '1px solid var(--color-border)'
         }}>
+          {/* View Mode Toggle */}
+          <div style={{ display: 'flex', gap: 4, marginRight: 16 }}>
+            <button
+              className={`btn ${viewMode === 'pdf' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setViewMode('pdf')}
+              style={{ padding: '8px 16px', minHeight: 40 }}
+            >
+              <FileTextIcon />
+              PDF
+            </button>
+            <button
+              className={`btn ${viewMode === 'markdown' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setViewMode('markdown')}
+              style={{ padding: '8px 16px', minHeight: 40 }}
+            >
+              <MarkdownIcon />
+              Markdown
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div style={{ width: 1, height: 24, backgroundColor: 'var(--color-border)', margin: '0 8px' }} />
+
           <button
             className={`btn ${tab === 'ai' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setTab(tab === 'ai' ? null : 'ai')}
@@ -258,14 +303,20 @@ export default function PaperView() {
           </button>
         </header>
 
-        {/* PDF Viewer */}
+        {/* Content */}
         <div style={{ flex: 1, overflow: 'auto' }}>
-          <PdfViewer
-            key={currentPage}
-            url={pdfUrl}
-            initialPage={currentPage}
-            onPageChange={(page) => setCurrentPage(page)}
-          />
+          {viewMode === 'pdf' ? (
+            <PdfViewer
+              key={currentPage}
+              url={pdfUrl}
+              initialPage={currentPage}
+              onPageChange={(page) => setCurrentPage(page)}
+            />
+          ) : (
+            <MarkdownView
+              paperId={id!}
+            />
+          )}
         </div>
       </main>
 

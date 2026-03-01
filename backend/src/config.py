@@ -4,6 +4,7 @@ import os
 
 class Settings(BaseSettings):
     app_dir: Path = Path(__file__).parent.parent
+    #print(f"App directory: {app_dir}")
     data_dir: Path = app_dir / "data"
     papers_dir: Path = data_dir / "papers"
     annotations_dir: Path = data_dir / "annotations"
@@ -11,6 +12,7 @@ class Settings(BaseSettings):
 
     # MinerU Configuration
     mineru_cache_dir: Path = data_dir / "markdown"  # Markdown output directory
+    #print(f"MinerU cache directory: {mineru_cache_dir}")
     mineru_model_dir: Path = Path(__file__).parent.parent.parent / "model"  # Local model directory
 
     # AI Configuration
